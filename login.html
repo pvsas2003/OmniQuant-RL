@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QuantTrade Login</title>
+
+  <!-- Firebase v10 (MODERN SDK) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import {
+      getAuth,
+      RecaptchaVerifier,
+      signInWithPhoneNumber
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+
+    // 🔥 YOUR CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-bo0KRRCTPRzUzLG5hlOqfhVgKhx7VDg",
+      authDomain: "stockpredictionapp-f9175.firebaseapp.com",
+      projectId: "stockpredictionapp-f9175",
+      storageBucket: "stockpredictionapp-f9175.firebasestorage.app",
+      messagingSenderId: "274968194721",
+      appId: "1:274968194721:web:3114419b4213056db7cae0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    let confirmationResult;
+    let currentPhone = "";
+
+    // 🔥 RECAPTCHA
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "normal",
+      callback: () => {
+        console.log("Recaptcha verified");
+      }
+    });
+
+    // ✅ SEND OTP
+    window.sendOTP = async function () {
+      const phone = document.getElementById("phone").value;
+      currentPhone = phone;
+
+      if (!phone.startsWith("+91")) {
+        document.getElementById("status").innerText = "❌ Use +91XXXXXXXXXX format";
+        return;
+      }
+
+      try {
+        confirmationResult = await signInWithPhoneNumber(
+          auth,
+          phone,
+          window.recaptchaVerifier
+        );
+
+        document.getElementById("status").innerText = "✅ OTP Sent";
+      } catch (error) {
+        console.error(error);
+        document.getElementById("status").innerText = "❌ " + error.message;
+      }
+    };
+
+    // ✅ VERIFY OTP
+    window.verifyOTP = async function () {
+      const code = document.getElementById("otp").value;
+
+      try {
+        const result = await confirmationResult.confirm(code);
+
+        const phone = result.user.phoneNumber;
+
+        // 🔥 SAVE FOR STREAMLIT
+        localStorage.setItem("user_phone", phone);
+
+        document.getElementById("status").innerText = "🎉 Login Success";
+
+        setTimeout(() => {
+          window.location.href = "http://localhost:8501/?phone=" + phone;
+        }, 1000);
+
+      } catch (error) {
+        document.getElementById("status").innerText = "❌ Invalid OTP";
+      }
+    };
+
+    // ✅ RESEND OTP
+    window.resendOTP = async function () {
+      if (!currentPhone) {
+        document.getElementById("status").innerText = "Enter phone first";
+        return;
+      }
+
+      try {
+        confirmationResult = await signInWithPhoneNumber(
+          auth,
+          currentPhone,
+          window.recaptchaVerifier
+        );
+
+        document.getElementById("status").innerText = "🔁 OTP Resent";
+      } catch (error) {
+        document.getElementById("status").innerText = "❌ " + error.message;
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(to right, #020617, #0f172a);
+      color: white;
+      text-align: center;
+      margin-top: 80px;
+    }
+
+    .card {
+      background: #0f172a;
+      padding: 40px;
+      border-radius: 15px;
+      width: 350px;
+      margin: auto;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+
+    input {
+      width: 90%;
+      padding: 12px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      background: #1e293b;
+      color: white;
+    }
+
+    button {
+      width: 95%;
+      padding: 12px;
+      margin: 8px;
+      border-radius: 8px;
+      border: none;
+      background: #22c55e;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #16a34a;
+    }
+
+    h2 {
+      color: #22c55e;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>📱 QuantTrade Login</h2>
+
+  <input type="text" id="phone" placeholder="+91XXXXXXXXXX">
+
+  <div id="recaptcha-container"></div>
+
+  <button onclick="sendOTP()">Send OTP</button>
+
+  <input type="text" id="otp" placeholder="Enter OTP">
+
+  <button onclick="verifyOTP()">Verify OTP</button>
+  <button onclick="resendOTP()">Resend OTP</button>
+
+  <p id="status"></p>
+</div>
+
+</body>
+</html>
